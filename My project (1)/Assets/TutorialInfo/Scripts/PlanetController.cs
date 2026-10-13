@@ -3,27 +3,53 @@ using UnityEngine;
 
 public class PlanetController : MonoBehaviour
 {
+    private enum PlanetState
+    {
+        Rolling,
+        Thrown,
+        Returning
+    }
+
     [Header("References")]
     [SerializeField] private PlayerMovement player;
     [SerializeField] private Rigidbody rb;
 
     [Header("Follow")]
-    [SerializeField] private float followDistance = 1.5f;
-    [SerializeField] private float followSpeed = 12f;
+    [SerializeField] private float followDistance = 2.5f;
+    [SerializeField] private float followSpeed = 20f;
+
+    [Header("Throw")]
+    [SerializeField] private float throwSpeed = 12f;
+
+    [Header("Return")]
+    [SerializeField] private float returnSpeed = 15f;
+    [SerializeField] private float returnCompleteDistance = 0.15f;
 
     [Header("Rolling")]
     [SerializeField] private float rollSpeed = 300f;
 
     [Header("Growth")]
-    [SerializeField] private int objectsNeededToGrow = 5;
+    [SerializeField] private int baseRocksNeeded = 3;
+    [SerializeField] private int rocksIncreasePerLevel = 2;
     [SerializeField] private float growAmount = 0.4f;
 
-    private int attachedObjectCount;
-    private int planetLevel = 1;
+    [Header("Attack")]
+    [SerializeField] private int attackDamage = 10;
 
+    private PlanetState currentState = PlanetState.Rolling;
+
+    private Vector3 throwDirection;
+    private Vector3 returnTarget;
     private Vector3 lastPosition;
 
-    private readonly List<GameObject> attachedObjects = new();
+    private int attachedRockCount = 0;
+    private int attachedCorpseCount = 0;
+    private int planetLevel = 1;
+
+    private readonly List<GameObject> attachedRocks = new();
+
+    // 한 번 던졌을 때 같은 적 중복 공격 방지
+    private readonly HashSet<EnemyHealth> hitEnemiesThisThrow = new();
 
     private void Awake()
     {
@@ -36,39 +62,168 @@ public class PlanetController : MonoBehaviour
         lastPosition = rb.position;
     }
 
+    private void Update()
+    {
+        HandleInput();
+    }
+
     private void FixedUpdate()
     {
-        FollowPlayer();
+        switch (currentState)
+        {
+            case PlanetState.Rolling:
+                FollowPlayer();
+                break;
+
+            case PlanetState.Thrown:
+                MoveThrownPlanet();
+                break;
+
+            case PlanetState.Returning:
+                MoveReturningPlanet();
+                break;
+        }
+
         RollPlanet();
     }
 
+    // =========================
+    // 입력
+    // =========================
+    private void HandleInput()
+    {
+        // 좌클릭 = 던지기
+        if (Input.GetMouseButtonDown(0))
+        {
+            ThrowPlanet();
+        }
+
+        // 우클릭 = 회수
+        if (Input.GetMouseButtonDown(1))
+        {
+            RecallPlanet();
+        }
+    }
+
+    // =========================
+    // 플레이어 앞 따라가기
+    // =========================
     private void FollowPlayer()
     {
-        Vector3 lookDirection = player.GetLookDirection();
+        if (player == null)
+            return;
+
+        Vector3 direction = player.GetLookDirection();
 
         Vector3 targetPosition =
             player.transform.position +
-            lookDirection * followDistance;
+            direction * followDistance;
 
         targetPosition.y = rb.position.y;
 
-        Vector3 newPosition = Vector3.Lerp(
+        Vector3 nextPosition = Vector3.MoveTowards(
             rb.position,
             targetPosition,
             followSpeed * Time.fixedDeltaTime
         );
 
-        rb.MovePosition(newPosition);
+        rb.MovePosition(nextPosition);
     }
 
+    // =========================
+    // 좌클릭 - 직선 투척
+    // =========================
+    private void ThrowPlanet()
+    {
+        if (currentState != PlanetState.Rolling)
+            return;
+
+        throwDirection = player.GetLookDirection();
+
+        throwDirection.y = 0f;
+        throwDirection.Normalize();
+
+        // 새로운 투척이므로 맞힌 적 목록 초기화
+        hitEnemiesThisThrow.Clear();
+
+        currentState = PlanetState.Thrown;
+
+        Debug.Log("행성 투척");
+    }
+
+    private void MoveThrownPlanet()
+    {
+        Vector3 nextPosition =
+            rb.position +
+            throwDirection *
+            throwSpeed *
+            Time.fixedDeltaTime;
+
+        rb.MovePosition(nextPosition);
+    }
+
+    // =========================
+    // 우클릭 - 직선 회수
+    // =========================
+    private void RecallPlanet()
+    {
+        if (currentState != PlanetState.Thrown)
+            return;
+
+        Vector3 direction = player.GetLookDirection();
+
+        returnTarget =
+            player.transform.position +
+            direction * followDistance;
+
+        returnTarget.y = rb.position.y;
+
+        currentState = PlanetState.Returning;
+
+        Debug.Log("행성 회수");
+    }
+
+    private void MoveReturningPlanet()
+    {
+        Vector3 nextPosition = Vector3.MoveTowards(
+            rb.position,
+            returnTarget,
+            returnSpeed * Time.fixedDeltaTime
+        );
+
+        rb.MovePosition(nextPosition);
+
+        float distance =
+            Vector3.Distance(
+                rb.position,
+                returnTarget
+            );
+
+        if (distance <= returnCompleteDistance)
+        {
+            rb.MovePosition(returnTarget);
+
+            currentState = PlanetState.Rolling;
+
+            Debug.Log("행성 귀환 완료");
+        }
+    }
+
+    // =========================
+    // 행성 굴러가기
+    // =========================
     private void RollPlanet()
     {
-        Vector3 movement = rb.position - lastPosition;
+        Vector3 movement =
+            rb.position - lastPosition;
 
         if (movement.sqrMagnitude > 0.0001f)
         {
             Vector3 rollAxis =
-                Vector3.Cross(Vector3.up, movement.normalized);
+                Vector3.Cross(
+                    Vector3.up,
+                    movement.normalized
+                );
 
             transform.Rotate(
                 rollAxis,
@@ -80,68 +235,186 @@ public class PlanetController : MonoBehaviour
         lastPosition = rb.position;
     }
 
-    private void OnTriggerEnter(Collider other)
+    // =========================
+    // 현재 단계 성장 필요 돌 개수
+    // =========================
+    private int GetRocksNeededToGrow()
     {
-        if (!other.CompareTag("Rock"))
-            return;
-
-        AttachObject(other.gameObject);
+        return baseRocksNeeded +
+               (planetLevel - 1) * rocksIncreasePerLevel;
     }
 
-    private void AttachObject(GameObject obj)
+    // =========================
+    // 충돌
+    // =========================
+    private void OnTriggerEnter(Collider other)
     {
-        // 같은 돌이 여러 번 처리되지 않도록
-        obj.tag = "Untagged";
+        EnemyHealth enemy =
+            other.GetComponentInParent<EnemyHealth>();
 
-        // 기존 물리 제거
-        Collider col = obj.GetComponent<Collider>();
-
-        if (col != null)
-            col.enabled = false;
-
-        Rigidbody objectRb = obj.GetComponent<Rigidbody>();
-
-        if (objectRb != null)
+        // =========================
+        // 던진 상태 → 적 공격
+        // =========================
+        if (currentState == PlanetState.Thrown)
         {
-            objectRb.isKinematic = true;
-            objectRb.useGravity = false;
+            if (enemy != null && !enemy.IsDead)
+            {
+                if (hitEnemiesThisThrow.Add(enemy))
+                {
+                    enemy.TakeDamage(attackDamage);
+
+                    Debug.Log(
+                        "적 공격! 데미지 : " +
+                        attackDamage
+                    );
+                }
+
+                return;
+            }
         }
 
-        // 현재 닿아있는 위치 그대로 행성에 부착
-        obj.transform.SetParent(transform, true);
+        // 굴리는 상태에서만 재료 수집
+        if (currentState != PlanetState.Rolling)
+            return;
 
-        attachedObjects.Add(obj);
+        // =========================
+        // 죽은 적 시체 획득
+        // =========================
+        EnemyCorpse corpse =
+            other.GetComponentInParent<EnemyCorpse>();
 
-        attachedObjectCount++;
+        if (corpse != null && !corpse.IsCollected)
+        {
+            AttachCorpse(corpse);
+            return;
+        }
+
+        // =========================
+        // 돌 획득
+        // =========================
+        if (other.CompareTag("Rock"))
+        {
+            AttachRock(other.gameObject);
+        }
+    }
+
+    // =========================
+    // 돌 붙이기
+    // =========================
+    private void AttachRock(GameObject rock)
+    {
+        rock.tag = "Untagged";
+
+        Rigidbody rockRb =
+            rock.GetComponent<Rigidbody>();
+
+        if (rockRb != null)
+        {
+            rockRb.linearVelocity = Vector3.zero;
+            rockRb.angularVelocity = Vector3.zero;
+            rockRb.useGravity = false;
+            rockRb.isKinematic = true;
+        }
+
+        Collider rockCollider =
+            rock.GetComponent<Collider>();
+
+        if (rockCollider != null)
+        {
+            rockCollider.enabled = false;
+        }
+
+        // 닿은 위치 그대로 붙이기
+        rock.transform.SetParent(transform, true);
+
+        attachedRocks.Add(rock);
+        attachedRockCount++;
+
+        int rocksNeeded = GetRocksNeededToGrow();
 
         Debug.Log(
-            $"붙은 물체: {attachedObjectCount} / {objectsNeededToGrow}"
+            "붙은 돌 : " +
+            attachedRockCount +
+            " / " +
+            rocksNeeded
         );
 
-        if (attachedObjectCount >= objectsNeededToGrow)
+        if (attachedRockCount >= rocksNeeded)
         {
             GrowPlanet();
         }
     }
 
+    // =========================
+    // 시체 붙이기
+    // =========================
+    private void AttachCorpse(EnemyCorpse corpse)
+    {
+        corpse.Collect();
+
+        GameObject corpseObject =
+            corpse.gameObject;
+
+        Rigidbody corpseRb =
+            corpseObject.GetComponent<Rigidbody>();
+
+        if (corpseRb != null)
+        {
+            corpseRb.linearVelocity = Vector3.zero;
+            corpseRb.angularVelocity = Vector3.zero;
+            corpseRb.useGravity = false;
+            corpseRb.isKinematic = true;
+        }
+
+        Collider[] colliders =
+            corpseObject.GetComponentsInChildren<Collider>();
+
+        foreach (Collider col in colliders)
+        {
+            col.enabled = false;
+        }
+
+        // 시체도 닿은 위치 그대로 행성에 붙음
+        corpseObject.transform.SetParent(
+            transform,
+            true
+        );
+
+        attachedCorpseCount++;
+
+        Debug.Log(
+            "시체 획득 : " +
+            attachedCorpseCount
+        );
+    }
+
+    // =========================
+    // 행성 성장
+    // =========================
     private void GrowPlanet()
     {
         planetLevel++;
 
-        // 행성 본체 크기 증가
-        transform.localScale += Vector3.one * growAmount;
+        transform.localScale +=
+            Vector3.one * growAmount;
 
-        // 지금까지 표면에 붙어있던 물체를 본체에 합쳐졌다고 처리
-        foreach (GameObject obj in attachedObjects)
+        // 성장에 사용한 돌 제거
+        foreach (GameObject rock in attachedRocks)
         {
-            if (obj != null)
-                Destroy(obj);
+            if (rock != null)
+            {
+                Destroy(rock);
+            }
         }
 
-        attachedObjects.Clear();
+        attachedRocks.Clear();
+        attachedRockCount = 0;
 
-        attachedObjectCount = 0;
-
-        Debug.Log($"행성 {planetLevel}단계 성장");
+        Debug.Log(
+            "행성 성장! 현재 단계 : " +
+            planetLevel +
+            " / 다음 성장 필요 돌 : " +
+            GetRocksNeededToGrow()
+        );
     }
 }
