@@ -11,7 +11,7 @@ public class PlanetController : MonoBehaviour
     }
 
     [Header("References")]
-    [SerializeField] private PlayerMovement player;
+    [SerializeField] private PlayerController player;
     [SerializeField] private Rigidbody rb;
 
     [Header("Follow")]
@@ -57,7 +57,7 @@ public class PlanetController : MonoBehaviour
             rb = GetComponent<Rigidbody>();
 
         if (player == null)
-            player = FindFirstObjectByType<PlayerMovement>();
+            player = FindFirstObjectByType<PlayerController>();
 
         lastPosition = rb.position;
     }
@@ -113,7 +113,7 @@ public class PlanetController : MonoBehaviour
         if (player == null)
             return;
 
-        Vector3 direction = player.GetLookDirection();
+        Vector3 direction = player.PlantTarget.forward;
 
         Vector3 targetPosition =
             player.transform.position +
@@ -138,7 +138,7 @@ public class PlanetController : MonoBehaviour
         if (currentState != PlanetState.Rolling)
             return;
 
-        throwDirection = player.GetLookDirection();
+        throwDirection = player.PlantTarget.forward;
 
         throwDirection.y = 0f;
         throwDirection.Normalize();
@@ -170,7 +170,7 @@ public class PlanetController : MonoBehaviour
         if (currentState != PlanetState.Thrown)
             return;
 
-        Vector3 direction = player.GetLookDirection();
+        Vector3 direction = player.PlantTarget.forward;
 
         returnTarget =
             player.transform.position +
