@@ -1196,10 +1196,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RockSpawner
   rockPrefab: {fileID: 7556202980219918140}
-  spawnCount: 100
   spawnWidth: 100
   spawnDepth: 100
   spawnY: 0.2
+  initialSpawnCount: 30
+  maxRockCount: 50
+  spawnInterval: 0.2
   minimumSpacing: 1
 --- !u!4 &1125910438
 Transform:
