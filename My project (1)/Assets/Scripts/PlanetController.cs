@@ -49,7 +49,7 @@ public class PlanetController : MonoBehaviour
     private readonly List<GameObject> attachedRocks = new();
 
     // 한 번 던졌을 때 같은 적 중복 공격 방지
-    private readonly HashSet<EnemyHealth> hitEnemiesThisThrow = new();
+    private readonly HashSet<Health> hitEnemiesThisThrow = new();
 
     private void Awake()
     {
@@ -249,8 +249,8 @@ public class PlanetController : MonoBehaviour
     // =========================
     private void OnTriggerEnter(Collider other)
     {
-        EnemyHealth enemy =
-            other.GetComponentInParent<EnemyHealth>();
+        Health enemy =
+            other.GetComponentInParent<Health>();
 
         // =========================
         // 던진 상태 → 적 공격
