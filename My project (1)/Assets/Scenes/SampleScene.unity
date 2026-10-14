@@ -793,11 +793,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlanetController
   player: {fileID: 2087638189}
-  rb: {fileID: 0}
-  followDistance: 3
+  rb: {fileID: 460008219}
+  followDistance: 5
   followSpeed: 25
-  throwSpeed: 20
-  returnSpeed: 30
+  throwSpeed: 30
+  returnSpeed: 50
   returnCompleteDistance: 0.15
   rollSpeed: 200
   baseRocksNeeded: 5

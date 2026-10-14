@@ -56,16 +56,20 @@ public class Health : MonoBehaviour
         else
         {
             IsDead = true;
-            
 
-            // 적 움직임 정지
-            if (rb != null)
+
+            if (currentHp <= 0)
             {
-                rb.linearVelocity = Vector3.zero;
-                rb.angularVelocity = Vector3.zero;
+                // 추적 스크립트 비활성화
+                EnemyChaser chaser = GetComponent<EnemyChaser>();
 
-                rb.useGravity = false;
-                rb.isKinematic = true;
+                if (chaser != null)
+                {
+                    chaser.enabled = false;
+                }
+
+                // 기존에 작성한 사망 처리 코드
+                // 예: Die();
             }
 
             // EnemyCorpse가 없으면 추가
