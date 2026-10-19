@@ -68,6 +68,14 @@ public class Health : MonoBehaviour
                     chaser.enabled = false;
                 }
 
+                // 원거리 스크립트 비활성화 (추가된 부분)
+                EnemyShooter shooter = GetComponent<EnemyShooter>();
+
+                if (shooter != null)
+                {
+                    shooter.enabled = false;
+                }
+
                 // 기존에 작성한 사망 처리 코드
                 // 예: Die();
             }
