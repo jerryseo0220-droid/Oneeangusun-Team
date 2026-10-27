@@ -5,6 +5,7 @@ public class RockSpawner : MonoBehaviour
 {
     [Header("Rock")]
     [SerializeField] private GameObject rockPrefab;
+    [SerializeField] private float uniformRockScale = 1f; // [추가됨] 통일할 돌의 크기
 
     [Header("Spawn Area")]
     [SerializeField] private float spawnWidth = 20f;
@@ -69,11 +70,15 @@ public class RockSpawner : MonoBehaviour
             // 생성 가능한 위치라면 소환하고 함수 종료
             if (CanSpawn(randomPosition))
             {
-                Instantiate(
+                GameObject newRock = Instantiate(
                     rockPrefab,
                     randomPosition,
                     Random.rotation // 방향을 무작위로 회전시켜서 자연스럽게 배치
                 );
+
+                // [추가됨] 생성된 돌의 크기를 설정한 uniformRockScale 값으로 강제 통일
+                newRock.transform.localScale = Vector3.one * uniformRockScale;
+
                 return;
             }
         }

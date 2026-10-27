@@ -29,8 +29,6 @@ public class PlanetController : MonoBehaviour
     [SerializeField] private float rollSpeed = 300f;
 
     [Header("Growth")]
-    [SerializeField] private int baseRocksNeeded = 3;
-    [SerializeField] private int rocksIncreasePerLevel = 2;
     [SerializeField] private float growAmount = 0.4f;
 
     [Header("Attack")]
@@ -47,8 +45,8 @@ public class PlanetController : MonoBehaviour
     private int planetLevel = 1;
 
     private readonly List<GameObject> attachedRocks = new();
+    private readonly List<EnemyCorpse> attachedCorpses = new();
 
-    // «— π¯ ¥¯¡≥¿ª ∂ß ∞∞¿∫ ¿˚ ¡ﬂ∫π ∞¯∞› πÊ¡ˆ
     private readonly HashSet<Health> hitEnemiesThisThrow = new();
 
     private void Awake()
@@ -87,37 +85,26 @@ public class PlanetController : MonoBehaviour
         RollPlanet();
     }
 
-    // =========================
-    // ¿‘∑¬
-    // =========================
     private void HandleInput()
     {
-        // ¡¬≈¨∏Ø = ¥¯¡ˆ±‚
         if (Input.GetMouseButtonDown(0))
         {
             ThrowPlanet();
         }
 
-        // øÏ≈¨∏Ø = »∏ºˆ
         if (Input.GetMouseButtonDown(1))
         {
             RecallPlanet();
         }
     }
 
-    // =========================
-    // «√∑π¿ÃæÓ æ’ µ˚∂Û∞°±‚
-    // =========================
     private void FollowPlayer()
     {
         if (player == null)
             return;
 
         Vector3 direction = player.PlantTarget.forward;
-
-        Vector3 targetPosition =
-            player.transform.position +
-            direction * followDistance;
+        Vector3 targetPosition = player.transform.position + direction * followDistance;
 
         targetPosition.y = rb.position.y;
 
@@ -127,28 +114,24 @@ public class PlanetController : MonoBehaviour
             followSpeed * Time.fixedDeltaTime
         );
 
+        nextPosition.y = rb.position.y + (rb.linearVelocity.y * Time.fixedDeltaTime);
+
         rb.MovePosition(nextPosition);
     }
 
-    // =========================
-    // ¡¬≈¨∏Ø - ¡˜º± ≈ı√¥
-    // =========================
     private void ThrowPlanet()
     {
         if (currentState != PlanetState.Rolling)
             return;
 
         throwDirection = player.PlantTarget.forward;
-
         throwDirection.y = 0f;
         throwDirection.Normalize();
 
-        // ªı∑ŒøÓ ≈ı√¥¿Ãπ«∑Œ ∏¬»˘ ¿˚ ∏Ò∑œ √ ±‚»≠
         hitEnemiesThisThrow.Clear();
-
         currentState = PlanetState.Thrown;
 
-        Debug.Log("«‡º∫ ≈ı√¥");
+        Debug.Log("ÌñâÏÑ± Ìà¨Ï≤ô");
     }
 
     private void MoveThrownPlanet()
@@ -162,9 +145,6 @@ public class PlanetController : MonoBehaviour
         rb.MovePosition(nextPosition);
     }
 
-    // =========================
-    // øÏ≈¨∏Ø - ¡˜º± »∏ºˆ
-    // =========================
     private void RecallPlanet()
     {
         if (currentState != PlanetState.Thrown)
@@ -180,7 +160,7 @@ public class PlanetController : MonoBehaviour
 
         currentState = PlanetState.Returning;
 
-        Debug.Log("«‡º∫ »∏ºˆ");
+        Debug.Log("ÌñâÏÑ± ÌöåÏàò");
     }
 
     private void MoveReturningPlanet()
@@ -202,59 +182,42 @@ public class PlanetController : MonoBehaviour
         if (distance <= returnCompleteDistance)
         {
             rb.MovePosition(returnTarget);
-
             currentState = PlanetState.Rolling;
-
-            Debug.Log("«‡º∫ ±Õ»Ø øœ∑·");
+            Debug.Log("ÌñâÏÑ± Í∑ÄÌôò ÏôÑÎ£å");
         }
     }
 
-    // =========================
-    // «‡º∫ ±º∑Ø∞°±‚
-    // =========================
     private void RollPlanet()
     {
-        Vector3 movement =
-            rb.position - lastPosition;
+        Vector3 movement = rb.position - lastPosition;
 
         if (movement.sqrMagnitude > 0.0001f)
         {
-            Vector3 rollAxis =
-                Vector3.Cross(
-                    Vector3.up,
-                    movement.normalized
-                );
-
-            transform.Rotate(
-                rollAxis,
-                rollSpeed * movement.magnitude,
-                Space.World
-            );
+            Vector3 rollAxis = Vector3.Cross(Vector3.up, movement.normalized);
+            transform.Rotate(rollAxis, rollSpeed * movement.magnitude, Space.World);
         }
 
         lastPosition = rb.position;
     }
 
-    // =========================
-    // «ˆ¿Á ¥‹∞Ë º∫¿Â « ø‰ µπ ∞≥ºˆ
-    // =========================
-    private int GetRocksNeededToGrow()
+    // 3Ïùò Ï†úÍ≥±ÏúºÎ°ú Î†àÎ≤®ÏóÖ ÏöîÍµ¨Ïπò Í≥ÑÏÇ∞
+    private int GetItemsNeededToGrow()
     {
-        return baseRocksNeeded +
-               (planetLevel - 1) * rocksIncreasePerLevel;
+        return (int)Mathf.Pow(3, planetLevel);
     }
 
-    // =========================
-    // √Êµπ
-    // =========================
     private void OnTriggerEnter(Collider other)
     {
-        Health enemy =
-            other.GetComponentInParent<Health>();
+        HandleCollision(other.gameObject, other.GetComponentInParent<Health>(), other.GetComponentInParent<EnemyCorpse>());
+    }
 
-        // =========================
-        // ¥¯¡¯ ªÛ≈¬ °Ê ¿˚ ∞¯∞›
-        // =========================
+    private void OnCollisionEnter(Collision collision)
+    {
+        HandleCollision(collision.gameObject, collision.collider.GetComponentInParent<Health>(), collision.collider.GetComponentInParent<EnemyCorpse>());
+    }
+
+    private void HandleCollision(GameObject obj, Health enemy, EnemyCorpse corpse)
+    {
         if (currentState == PlanetState.Thrown)
         {
             if (enemy != null && !enemy.IsDead)
@@ -262,26 +225,14 @@ public class PlanetController : MonoBehaviour
                 if (hitEnemiesThisThrow.Add(enemy))
                 {
                     enemy.TakeDamage(attackDamage);
-
-                    Debug.Log(
-                        "¿˚ ∞¯∞›! µ•πÃ¡ˆ : " +
-                        attackDamage
-                    );
+                    Debug.Log("Ï†Å Í≥µÍ≤©! Îç∞ÎØ∏ÏßÄ : " + attackDamage);
                 }
-
-                return;
             }
+            return;
         }
 
-        // ±º∏Æ¥¬ ªÛ≈¬ø°º≠∏∏ ¿Á∑· ºˆ¡˝
         if (currentState != PlanetState.Rolling)
             return;
-
-        // =========================
-        // ¡◊¿∫ ¿˚ Ω√√º »πµÊ
-        // =========================
-        EnemyCorpse corpse =
-            other.GetComponentInParent<EnemyCorpse>();
 
         if (corpse != null && !corpse.IsCollected)
         {
@@ -289,25 +240,17 @@ public class PlanetController : MonoBehaviour
             return;
         }
 
-        // =========================
-        // µπ »πµÊ
-        // =========================
-        if (other.CompareTag("Rock"))
+        if (obj.CompareTag("Rock"))
         {
-            AttachRock(other.gameObject);
+            AttachRock(obj);
         }
     }
 
-    // =========================
-    // µπ ∫Ÿ¿Ã±‚
-    // =========================
     private void AttachRock(GameObject rock)
     {
         rock.tag = "Untagged";
 
-        Rigidbody rockRb =
-            rock.GetComponent<Rigidbody>();
-
+        Rigidbody rockRb = rock.GetComponent<Rigidbody>();
         if (rockRb != null)
         {
             rockRb.linearVelocity = Vector3.zero;
@@ -316,48 +259,38 @@ public class PlanetController : MonoBehaviour
             rockRb.isKinematic = true;
         }
 
-        Collider rockCollider =
-            rock.GetComponent<Collider>();
-
+        Collider rockCollider = rock.GetComponent<Collider>();
         if (rockCollider != null)
         {
             rockCollider.enabled = false;
         }
 
-        // ¥Í¿∫ ¿ßƒ° ±◊¥Î∑Œ ∫Ÿ¿Ã±‚
         rock.transform.SetParent(transform, true);
-
         attachedRocks.Add(rock);
         attachedRockCount++;
 
-        int rocksNeeded = GetRocksNeededToGrow();
+        // [Ï∂îÍ∞ÄÎê®] ÎèåÏùÑ Î®πÏùÑ ÎïåÎßàÎã§ Ï¶âÏãú 10Ï†ê ÌöçÎìù (Îèå 1Í∞ú, ÏãúÏ≤¥ 0Í∞ú Ï†ÑÎã¨)
+        if (GameManager.Instance != null)
+        {
+            GameManager.Instance.AddScore(1, 0);
+        }
 
-        Debug.Log(
-            "∫Ÿ¿∫ µπ : " +
-            attachedRockCount +
-            " / " +
-            rocksNeeded
-        );
+        int totalItems = attachedRockCount + attachedCorpseCount;
+        int itemsNeeded = GetItemsNeededToGrow();
+        Debug.Log($"Ïò§Î∏åÏ†ùÌä∏ Ìù°Ïàò (Îèå) -> ÌòÑÏû¨: {totalItems}Í∞ú / ÌïÑÏöî: {itemsNeeded}Í∞ú");
 
-        if (attachedRockCount >= rocksNeeded)
+        if (totalItems >= itemsNeeded)
         {
             GrowPlanet();
         }
     }
 
-    // =========================
-    // Ω√√º ∫Ÿ¿Ã±‚
-    // =========================
     private void AttachCorpse(EnemyCorpse corpse)
     {
         corpse.Collect();
+        GameObject corpseObject = corpse.gameObject;
 
-        GameObject corpseObject =
-            corpse.gameObject;
-
-        Rigidbody corpseRb =
-            corpseObject.GetComponent<Rigidbody>();
-
+        Rigidbody corpseRb = corpseObject.GetComponent<Rigidbody>();
         if (corpseRb != null)
         {
             corpseRb.linearVelocity = Vector3.zero;
@@ -366,55 +299,63 @@ public class PlanetController : MonoBehaviour
             corpseRb.isKinematic = true;
         }
 
-        Collider[] colliders =
-            corpseObject.GetComponentsInChildren<Collider>();
-
+        Collider[] colliders = corpseObject.GetComponentsInChildren<Collider>();
         foreach (Collider col in colliders)
         {
             col.enabled = false;
         }
 
-        // Ω√√ºµµ ¥Í¿∫ ¿ßƒ° ±◊¥Î∑Œ «‡º∫ø° ∫Ÿ¿Ω
-        corpseObject.transform.SetParent(
-            transform,
-            true
-        );
-
+        corpseObject.transform.SetParent(transform, true);
+        attachedCorpses.Add(corpse);
         attachedCorpseCount++;
 
-        Debug.Log(
-            "Ω√√º »πµÊ : " +
-            attachedCorpseCount
-        );
+        // [Ï∂îÍ∞ÄÎê®] ÏãúÏ≤¥Î•º Î®πÏùÑ ÎïåÎßàÎã§ Ï¶âÏãú 15Ï†ê ÌöçÎìù (Îèå 0Í∞ú, ÏãúÏ≤¥ 1Í∞ú Ï†ÑÎã¨)
+        if (GameManager.Instance != null)
+        {
+            GameManager.Instance.AddScore(0, 1);
+        }
+
+        int totalItems = attachedRockCount + attachedCorpseCount;
+        int itemsNeeded = GetItemsNeededToGrow();
+        Debug.Log($"Ïò§Î∏åÏ†ùÌä∏ Ìù°Ïàò (ÏãúÏ≤¥) -> ÌòÑÏû¨: {totalItems}Í∞ú / ÌïÑÏöî: {itemsNeeded}Í∞ú");
+
+        if (totalItems >= itemsNeeded)
+        {
+            GrowPlanet();
+        }
     }
 
-    // =========================
-    // «‡º∫ º∫¿Â
-    // =========================
     private void GrowPlanet()
     {
         planetLevel++;
 
-        transform.localScale +=
-            Vector3.one * growAmount;
+        transform.localScale += Vector3.one * growAmount;
 
-        // º∫¿Âø° ªÁøÎ«— µπ ¡¶∞≈
-        foreach (GameObject rock in attachedRocks)
+        transform.position += new Vector3(0, growAmount / 2f, 0);
+
+        Collider[] colliders = GetComponents<Collider>();
+        foreach (Collider col in colliders)
         {
-            if (rock != null)
-            {
-                Destroy(rock);
-            }
+            col.enabled = false;
+            col.enabled = true;
         }
 
+        // [ÏÇ≠Ï†úÎê®] Î†àÎ≤®ÏóÖ ÏãúÏóê Ìïú Î≤àÏóê Ï†êÏàòÎ•º Ï£ºÎçò ÏΩîÎìúÎäî Ï†úÍ±∞ÌñàÏäµÎãàÎã§.
+
+        foreach (GameObject rock in attachedRocks)
+        {
+            if (rock != null) Destroy(rock);
+        }
         attachedRocks.Clear();
         attachedRockCount = 0;
 
-        Debug.Log(
-            "«‡º∫ º∫¿Â! «ˆ¿Á ¥‹∞Ë : " +
-            planetLevel +
-            " / ¥Ÿ¿Ω º∫¿Â « ø‰ µπ : " +
-            GetRocksNeededToGrow()
-        );
+        foreach (EnemyCorpse corpse in attachedCorpses)
+        {
+            if (corpse != null) Destroy(corpse.gameObject);
+        }
+        attachedCorpses.Clear();
+        attachedCorpseCount = 0;
+
+        Debug.Log($"ÌñâÏÑ± Ìè≠Î∞úÏ†Å ÏÑ±Ïû•! [Î†àÎ≤® {planetLevel}] Îã§Ïùå Î†àÎ≤®ÏóÖ ÌïÑÏöî Ïò§Î∏åÏ†ùÌä∏ Ïàò: {GetItemsNeededToGrow()}Í∞ú");
     }
 }
