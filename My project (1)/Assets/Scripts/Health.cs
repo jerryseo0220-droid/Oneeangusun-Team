@@ -1,6 +1,5 @@
 using UnityEngine;
 using UnityEngine.UI;
-using UnityEngine.SceneManagement;
 
 public class Health : MonoBehaviour
 {
@@ -44,8 +43,7 @@ public class Health : MonoBehaviour
     {
         if (hpSlider != null)
         {
-            hpSlider.value =
-                (float)currentHp / maxHp;
+            hpSlider.value = (float)currentHp / maxHp;
         }
     }
 
@@ -61,13 +59,13 @@ public class Health : MonoBehaviour
         // =========================
         if (CompareTag("Player"))
         {
-            Debug.Log("게임 오버");
+            Debug.Log("플레이어 사망! 게임 매니저를 호출합니다.");
 
-            // 혹시 게임이 정지되어 있을 경우 복구
-            Time.timeScale = 1f;
-
-            // 게임오버 화면으로 이동
-            SceneManager.LoadScene("GameOverScene");
+            // [수정된 부분] 씬을 직접 넘기지 않고 GameManager에게 점수 저장과 씬 전환을 통째로 맡깁니다!
+            if (GameManager.Instance != null)
+            {
+                GameManager.Instance.ShowGameOver();
+            }
 
             return;
         }
@@ -77,36 +75,26 @@ public class Health : MonoBehaviour
         // =========================
 
         // 추적 AI 정지
-        EnemyChaser chaser =
-            GetComponent<EnemyChaser>();
-
+        EnemyChaser chaser = GetComponent<EnemyChaser>();
         if (chaser != null)
         {
             chaser.enabled = false;
         }
 
         // 원거리 AI 정지
-        EnemyShooter shooter =
-            GetComponent<EnemyShooter>();
-
+        EnemyShooter shooter = GetComponent<EnemyShooter>();
         if (shooter != null)
         {
             shooter.enabled = false;
         }
 
         // 적을 삭제하지 않고 시체 상태로 변경
-        EnemyCorpse corpse =
-            GetComponent<EnemyCorpse>();
-
+        EnemyCorpse corpse = GetComponent<EnemyCorpse>();
         if (corpse == null)
         {
-            corpse =
-                gameObject.AddComponent<EnemyCorpse>();
+            corpse = gameObject.AddComponent<EnemyCorpse>();
         }
 
-        Debug.Log(
-            gameObject.name +
-            " → 시체가 됨"
-        );
+        Debug.Log(gameObject.name + " → 시체가 됨");
     }
 }

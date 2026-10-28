@@ -1,15 +1,16 @@
-using UnityEngine;
+ï»¿using UnityEngine;
 using TMPro;
+using UnityEngine.SceneManagement;
 
 public class GameManager : MonoBehaviour
 {
     public static GameManager Instance;
 
-    [Header("UI ¿¬°á")]
+    [Header("UI ì—°ê²°")]
     public TextMeshProUGUI scoreText;
     public TextMeshProUGUI waveText;
 
-    [Header("Á¡¼ö ¼³Á¤")]
+    [Header("ì ìˆ˜ ì„¤ì •")]
     public int scorePerRock = 10;
     public int scorePerCorpse = 15;
 
@@ -30,6 +31,7 @@ public class GameManager : MonoBehaviour
 
     private void Start()
     {
+        Time.timeScale = 1f;
         UpdateUI();
     }
 
@@ -38,8 +40,8 @@ public class GameManager : MonoBehaviour
         int earnedScore = (rockCount * scorePerRock) + (corpseCount * scorePerCorpse);
         currentScore += earnedScore;
 
-        if (rockCount > 0) Debug.Log($"µ¹ Èí¼ö! +{earnedScore}Á¡ / ÃÑ Á¡¼ö: {currentScore}");
-        if (corpseCount > 0) Debug.Log($"½ÃÃ¼ Èí¼ö! +{earnedScore}Á¡ / ÃÑ Á¡¼ö: {currentScore}");
+        if (rockCount > 0) Debug.Log($"ëŒ í¡ìˆ˜! +{earnedScore}ì  / ì´ ì ìˆ˜: {currentScore}");
+        if (corpseCount > 0) Debug.Log($"ì‹œì²´ í¡ìˆ˜! +{earnedScore}ì  / ì´ ì ìˆ˜: {currentScore}");
 
         UpdateUI();
     }
@@ -57,5 +59,19 @@ public class GameManager : MonoBehaviour
 
         if (waveText != null)
             waveText.text = "Wave : " + currentWave;
+    }
+
+    public void ShowGameOver()
+    {
+
+        int highScore = PlayerPrefs.GetInt("HighScore", 0);
+        if (currentScore > highScore)
+        {
+            PlayerPrefs.SetInt("HighScore", currentScore);
+        }
+
+        PlayerPrefs.Save();
+
+        SceneManager.LoadScene("GameOver");
     }
 }

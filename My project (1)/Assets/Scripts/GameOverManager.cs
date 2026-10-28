@@ -1,23 +1,34 @@
-using UnityEngine;
+Ôªøusing UnityEngine;
+using TMPro;
 using UnityEngine.SceneManagement;
 
 public class GameOverManager : MonoBehaviour
 {
-    private void Awake()
+    [Header("UI Ïó∞Í≤∞")]
+    public TextMeshProUGUI finalScoreText;
+    public TextMeshProUGUI bestScoreText;
+
+    private void Start()
     {
         Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
 
+        int currentScore = PlayerPrefs.GetInt("CurrentScore", 0);
+        int highScore = PlayerPrefs.GetInt("HighScore", 0);
+
+        if (finalScoreText != null)
+        {
+            finalScoreText.text = " : finalScoreText" + currentScore;
+        }
     }
 
-    // ¥ŸΩ√«œ±‚ °Ê Ω√¿€ »≠∏È¿∏∑Œ
     public void RestartGame()
     {
-        SceneManager.LoadScene("TitleScene");
+        SceneManager.LoadScene("Game");
     }
 
-    // ∞‘¿” ¡æ∑·
-    public void QuitGame()
+    public void GoToTitle()
     {
-        Application.Quit();
+        SceneManager.LoadScene("Title");
     }
 }
