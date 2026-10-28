@@ -200,7 +200,6 @@ public class PlanetController : MonoBehaviour
         lastPosition = rb.position;
     }
 
-    // 3의 제곱으로 레벨업 요구치 계산
     private int GetItemsNeededToGrow()
     {
         return (int)Mathf.Pow(3, planetLevel);
@@ -269,7 +268,6 @@ public class PlanetController : MonoBehaviour
         attachedRocks.Add(rock);
         attachedRockCount++;
 
-        // [추가됨] 돌을 먹을 때마다 즉시 10점 획득 (돌 1개, 시체 0개 전달)
         if (GameManager.Instance != null)
         {
             GameManager.Instance.AddScore(1, 0);
@@ -309,7 +307,6 @@ public class PlanetController : MonoBehaviour
         attachedCorpses.Add(corpse);
         attachedCorpseCount++;
 
-        // [추가됨] 시체를 먹을 때마다 즉시 15점 획득 (돌 0개, 시체 1개 전달)
         if (GameManager.Instance != null)
         {
             GameManager.Instance.AddScore(0, 1);
@@ -339,8 +336,6 @@ public class PlanetController : MonoBehaviour
             col.enabled = false;
             col.enabled = true;
         }
-
-        // [삭제됨] 레벨업 시에 한 번에 점수를 주던 코드는 제거했습니다.
 
         foreach (GameObject rock in attachedRocks)
         {
