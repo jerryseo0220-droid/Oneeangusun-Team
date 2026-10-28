@@ -1327,13 +1327,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 60efd17a12404024a9bf13206e480789, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RockSpawner
-  rockPrefab: {fileID: 7556202980219918140}
+  rockPrefab: {fileID: 7425536774906094282, guid: 7cf280b522de2224db5427249685a532, type: 3}
   spawnWidth: 100
   spawnDepth: 100
   spawnY: 0.2
   initialSpawnCount: 30
-  maxRockCount: 50
-  spawnInterval: 0.2
+  maxRockCount: 100
+  spawnInterval: 0.002
   minimumSpacing: 1
 --- !u!4 &1125910438
 Transform:
@@ -2095,11 +2095,6 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: a2052482252b68f4fb0e5b5c593ff423, type: 3}
---- !u!1 &7556202980219918140 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 7425536774906094282, guid: 7cf280b522de2224db5427249685a532, type: 3}
-  m_PrefabInstance: {fileID: 1139912949270394358}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
